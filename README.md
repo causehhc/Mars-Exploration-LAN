@@ -9,6 +9,8 @@
   + socket：创建TCP服务端  
   + threading：多线程
   + queue：线程间通信
++ 特别说明：
+  + 上下板都需要接电池，不然瞬时功耗过大可能会使stm32复位...
 + 就这：
 
 ![avatar](PIC/demo.jpg) 
