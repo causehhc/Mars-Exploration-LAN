@@ -1,5 +1,4 @@
 import time
-import pygame
 import keyboard
 import socket
 import threading
@@ -99,7 +98,6 @@ def control(in_q):
 
 
 if __name__ == '__main__':
-    pygame.init()
     q = Queue()
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
     s.bind(('192.168.1.225', 8080))
