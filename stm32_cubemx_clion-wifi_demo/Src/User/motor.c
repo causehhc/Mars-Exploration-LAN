@@ -16,7 +16,7 @@ void plus_ADD(motorInfoType *leftInfo, motorInfoType *rightInfo){
   rightInfo->ADD += rightInfo->ENC;
 }
 
-void incremental_PI_vel(motorInfoType *motorInfo, PIvelType *PIvel){
+void incremental_PI_vel(motorInfoType *motorInfo, PI_Type *PIvel){
   PIvel->E = motorInfo->TGT - motorInfo->ENC;
   motorInfo->PWM += (PIvel->Kp*(PIvel->E-PIvel->lastE)+PIvel->Ki*PIvel->E);
   PIvel->lastE = PIvel->E;
@@ -45,4 +45,10 @@ void set_PWM(motorInfoType *leftInfo, motorInfoType *rightInfo){
     __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, 7200);
     __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4, 7200 + rightInfo->PWM);
   }
+}
+
+void incremental_PI_pos(motorInfoType *motorInfo, PI_Type *PIpos){
+  PIpos->E = motorInfo->TGTADD - motorInfo->ADD;
+  motorInfo->TGT += (PIpos->Kp * (PIpos->E - PIpos->lastE) + PIpos->Ki * PIpos->E);
+  PIpos->lastE = PIpos->E;
 }

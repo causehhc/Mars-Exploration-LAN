@@ -60,8 +60,10 @@ uint8_t RxBuffer2;
 
 motorInfoType leftInfo;
 motorInfoType rightInfo;
-PIvelType leftPIvel;
-PIvelType rightPIvel;
+PI_Type leftPIvel;
+PI_Type rightPIvel;
+PI_Type leftPIpos;
+PI_Type rightPIpos;
 
 uint8_t control[2] = {0};
 
@@ -103,6 +105,16 @@ void para_init(){
   rightPIvel.Ki = 100;
   rightPIvel.E = 0;
   rightPIvel.lastE = 0;
+
+  leftPIpos.Kp = 1;
+  leftPIpos.Ki = 1;
+  leftPIpos.E = 0;
+  leftPIpos.lastE = 0;
+
+  rightPIpos.Kp = 1;
+  rightPIpos.Ki = 1;
+  rightPIpos.E = 0;
+  rightPIpos.lastE = 0;
 }
 
 void check_timeout(){
@@ -221,11 +233,11 @@ int main(void)
     if(!HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin)){
       while(!HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin));
       HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); //翻转LED
-      leftInfo.TGT=10;
-      rightInfo.TGT=-10;
+      leftInfo.TGTADD = 90000;
+//      rightInfo.TGTADD = -10;
     }
-
-//    HAL_Delay(100);
+    printf("ENC:%d TGT:%d PWM:%d ADD:%d TGTADD%d\n", leftInfo.ENC, leftInfo.TGT, leftInfo.PWM, leftInfo.ADD, leftInfo.TGTADD);
+    HAL_Delay(100);
   }
   /* USER CODE END 3 */
 }
@@ -255,7 +267,7 @@ void SystemClock_Config(void)
   /** Initializes the CPU, AHB and APB busses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+                                |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
@@ -270,16 +282,18 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
   if (htim->Instance == htim6.Instance){ //10ms
-    //check_time
-    check_timeout();
+//    //check_time
+//    check_timeout();
 
-    //ir
-    flash_ir();
+//    //ir
+//    flash_ir();
 
     //motorControl
     check_ENC(&leftInfo, &rightInfo);
     plus_ADD(&leftInfo, &rightInfo);
+    incremental_PI_pos(&leftInfo, &leftPIpos);
     incremental_PI_vel(&leftInfo, &leftPIvel);
+    incremental_PI_pos(&rightInfo, &rightPIpos);
     incremental_PI_vel(&rightInfo, &rightPIvel);
     range_PWM(&leftInfo, &rightInfo, 7000);
     set_PWM(&leftInfo, &rightInfo);
@@ -295,35 +309,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
     HAL_UART_Transmit(&huart1, &RxBuffer1, sizeof(uint8_t), 100);
     HAL_UART_Receive_IT(&huart1, &RxBuffer1, 1);
 
-//    HAL_UART_Transmit(&huart1, &RxBuffer1, sizeof(uint8_t), 100);
-//    static uint8_t flag, i, receive[BUFLEN];
-//    if(RxBuffer1 == '[') flag = 1; // �???????始采集标记位
-//    if(RxBuffer1 == ']') flag = 2; //结束采集标记
-//
-//    if(flag == 1){ //采集数据
-//      receive[i++] = RxBuffer1;
-//      if(receive[i] == '['){
-//        i--;
-//      }
-//      if(i == 10){
-//        memset(receive, 0, sizeof(uint8_t) * BUFLEN);
-//        flag = 0;
-//      }
-//    }
-//    if(flag==2){ //分析数据
-//      HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); //翻转LED
-//      //数据更新
-//      control[0] = receive[1];
-//      control[1] = receive[2];
-//      if(usartCnt++ == 60000) usartCnt=0;
-//
-//      control_motor();
-//      // 重置数据
-//      flag = 0;
-//      i = 0;
-//      memset(receive, 0, sizeof(uint8_t) * BUFLEN);
-//    }
-//    HAL_UART_Receive_IT(&huart1, &RxBuffer1, 1);
   }
   if(huart == &huart2){
 //    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin); //翻转LED
@@ -332,7 +317,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
     HAL_UART_Transmit(&huart2, &RxBuffer2, sizeof(uint8_t), 100);
     static uint8_t flag, i, receive[BUFLEN];
-    if(RxBuffer2 == '[') flag = 1; // �???????始采集标记位
+    if(RxBuffer2 == '[') flag = 1; // �????????始采集标记位
     if(RxBuffer2 == ']') flag = 2; //结束采集标记
 
     if(flag == 1){ //采集数据
